@@ -1,6 +1,6 @@
 import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from 'src/users/users.service';
+import { UsersService } from '../../src/users/users.service';
 import { AuthLoginDto } from './dto/auth-login.dto';
 import * as bcrypt from 'bcrypt';
 
@@ -26,7 +26,7 @@ export class AuthService {
       if (!validateUser) throw new HttpException('Вы ввели не правильный логин или пароль', HttpStatus.FORBIDDEN)
       const payload = { phone: validateUser.phone, sub: validateUser.id };
       return {
-        access_token: this.jwtService.sign(payload),
+        access_token: this.jwtService.sign(payload, { secret: process.env.JWT_SECRET }),
       };
     } catch (error) {
       throw new BadRequestException(error);

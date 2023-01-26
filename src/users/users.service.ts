@@ -8,6 +8,7 @@ import { UserResponseDto } from './dto/user-response.dto';
 
 interface IUserSearch {
   where: any;
+  select?: any;
 }
 
 @Injectable()

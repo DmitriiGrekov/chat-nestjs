@@ -7,12 +7,15 @@ import {
   Param,
   Delete,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from '@prisma/client';
 import { UserResponseDto } from './dto/user-response.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/auth/decorators/get-user.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -22,6 +25,15 @@ export class UsersController {
   @Post()
   create(@Body() createUserDto: CreateUserDto): Promise<User> {
     return this.usersService.create(createUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  findProfile(@CurrentUser() userId: number) {
+    return this.usersService.findOne({
+      where: { id: +userId },
+      select: { firstname: true, lastname: true, patroname: true, phone: true, id: true }
+    });
   }
 
   @HttpCode(200)
