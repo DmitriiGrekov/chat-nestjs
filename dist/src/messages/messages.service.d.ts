@@ -1,7 +1,7 @@
-import { Message } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { RoomsService } from '../../src/rooms/rooms.service';
-import { CreateMessageDto } from './dto/create-message.dto';
+import { Message } from "@prisma/client";
+import { PrismaService } from "../../prisma/prisma.service";
+import { RoomsService } from "../../src/rooms/rooms.service";
+import { CreateMessageDto } from "./dto/create-message.dto";
 export declare class MessagesService {
     private prismaService;
     private roomService;

@@ -24,6 +24,7 @@ export class RoomsService {
     try {
       return await this.prismaService.room.findMany(params);
     } catch (error) {
+      console.log(error);
       throw new BadRequestException(error)
     }
   }
@@ -34,6 +35,7 @@ export class RoomsService {
       if (!room) throw new HttpException('Комната не найдена', HttpStatus.NOT_FOUND);
       return room
     } catch (error) {
+      console.log(error);
       throw new BadRequestException(error);
     }
   }

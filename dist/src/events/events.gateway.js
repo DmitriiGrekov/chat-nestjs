@@ -14,7 +14,6 @@ const websockets_1 = require("@nestjs/websockets");
 const socket_io_1 = require("socket.io");
 let EventsGateway = class EventsGateway {
     onModuleInit() {
-        console.log('init');
     }
     sendMessage(event, data) {
         return this.server.emit(event, data);

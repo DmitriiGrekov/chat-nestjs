@@ -14,12 +14,13 @@ const prisma_service_1 = require("../../prisma/prisma.service");
 const jwt_auth_strategies_1 = require("../../src/auth/strategies/jwt-auth.strategies");
 const rooms_gateway_1 = require("./rooms.gateway");
 const jwt_1 = require("@nestjs/jwt");
+const messages_service_1 = require("../messages/messages.service");
 let RoomsModule = class RoomsModule {
 };
 RoomsModule = __decorate([
     (0, common_1.Module)({
         controllers: [rooms_controller_1.RoomsController],
-        providers: [rooms_service_1.RoomsService, prisma_service_1.PrismaService, jwt_auth_strategies_1.JwtStrategy, rooms_gateway_1.RoomsGateway, jwt_1.JwtService]
+        providers: [rooms_service_1.RoomsService, prisma_service_1.PrismaService, jwt_auth_strategies_1.JwtStrategy, rooms_gateway_1.RoomsGateway, jwt_1.JwtService, messages_service_1.MessagesService]
     })
 ], RoomsModule);
 exports.RoomsModule = RoomsModule;

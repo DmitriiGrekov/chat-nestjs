@@ -6,4 +6,7 @@ export declare class AuthController {
     login(authLoginDto: AuthLoginDto): Promise<{
         access_token: string;
     }>;
+    rootOne(): Promise<{
+        data: boolean;
+    }>;
 }

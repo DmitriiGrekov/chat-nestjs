@@ -20,19 +20,17 @@ const jwt_auth_guard_1 = require("../../src/auth/guards/jwt-auth.guard");
 const get_user_decorator_1 = require("../../src/auth/decorators/get-user.decorator");
 const message_gateway_1 = require("./message.gateway");
 let MessagesController = class MessagesController {
-    constructor(messagesService, messageGateway, cacheManager) {
+    constructor(messagesService, messageGateway) {
         this.messagesService = messagesService;
         this.messageGateway = messageGateway;
-        this.cacheManager = cacheManager;
     }
     async send(createMessageDto, userId) {
         const message = await this.messagesService.send(createMessageDto, +userId);
-        await this.cacheManager.set('name', 'Dmitrii');
-        console.log(await this.cacheManager.get('name'));
+        this.messageGateway.sendMessage(message, createMessageDto.room_id);
         return message;
     }
     findAll(roomId, userId) {
-        return this.messagesService.findAll({ where: { room_id: +roomId } }, +roomId, userId);
+        return this.messagesService.findAll({ where: { room_id: +roomId }, include: { User: { select: { firstname: true, lastname: true, patroname: true, image: true, id: true } } } }, +roomId, userId);
     }
     remove(id, userId) {
         return this.messagesService.remove(+id, userId);
@@ -40,7 +38,7 @@ let MessagesController = class MessagesController {
 };
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Post)('send'),
+    (0, common_1.Post)("send"),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
@@ -49,8 +47,8 @@ __decorate([
 ], MessagesController.prototype, "send", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Get)('rooms/:id/list'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Get)("rooms/:id/list"),
+    __param(0, (0, common_1.Param)("id")),
     __param(1, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number, Number]),
@@ -58,18 +56,17 @@ __decorate([
 ], MessagesController.prototype, "findAll", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Delete)(':id/delete'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Delete)(":id/delete"),
+    __param(0, (0, common_1.Param)("id")),
     __param(1, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Number]),
     __metadata("design:returntype", void 0)
 ], MessagesController.prototype, "remove", null);
 MessagesController = __decorate([
-    (0, common_1.Controller)('messages'),
-    __param(2, (0, common_1.Inject)(common_1.CACHE_MANAGER)),
+    (0, common_1.Controller)("messages"),
     __metadata("design:paramtypes", [messages_service_1.MessagesService,
-        message_gateway_1.MessageGateway, Object])
+        message_gateway_1.MessageGateway])
 ], MessagesController);
 exports.MessagesController = MessagesController;
 //# sourceMappingURL=messages.controller.js.map

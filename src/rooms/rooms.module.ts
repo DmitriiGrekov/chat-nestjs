@@ -5,9 +5,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { JwtStrategy } from '../../src/auth/strategies/jwt-auth.strategies';
 import { RoomsGateway } from './rooms.gateway';
 import { JwtService } from '@nestjs/jwt';
+import { MessagesService } from 'src/messages/messages.service';
 
 @Module({
   controllers: [RoomsController],
-  providers: [RoomsService, PrismaService, JwtStrategy, RoomsGateway, JwtService]
+  providers: [RoomsService, PrismaService, JwtStrategy, RoomsGateway, JwtService, MessagesService]
 })
 export class RoomsModule { }

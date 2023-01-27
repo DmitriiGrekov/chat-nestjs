@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, Render } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthLoginDto } from './dto/auth-login.dto';
 
@@ -10,6 +10,12 @@ export class AuthController {
   @Post('/login')
   login(@Body() authLoginDto: AuthLoginDto) {
     return this.authService.login(authLoginDto);
+  }
+
+  @Get('/login/view')
+  @Render("login")
+  async rootOne() {
+    return { data: true };
   }
 
 

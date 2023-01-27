@@ -8,7 +8,7 @@ export declare class UsersController {
     create(createUserDto: CreateUserDto): Promise<User>;
     findProfile(userId: number): Promise<User>;
     findAll(): Promise<User[]>;
-    findOne(id: string): Promise<Omit<User, "password" | "email" | "phone">>;
+    findOne(id: string): Promise<Omit<User, "phone" | "password" | "email">>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<User>;
     remove(id: string): Promise<User>;
 }

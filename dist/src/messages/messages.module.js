@@ -24,7 +24,6 @@ MessagesModule = __decorate([
         providers: [messages_service_1.MessagesService, prisma_service_1.PrismaService, rooms_service_1.RoomsService, events_gateway_1.EventsGateway, message_gateway_1.MessageGateway, jwt_1.JwtService],
         imports: [
             common_1.CacheModule.register({
-                isGlobal: true,
                 store: cache_manager_redis_store_1.default,
                 host: 'localhost',
                 port: 6379,

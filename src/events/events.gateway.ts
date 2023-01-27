@@ -20,7 +20,7 @@ export class EventsGateway implements OnModuleInit {
   server: Server;
 
   onModuleInit() {
-    console.log('init')
+    // console.log('init')
   }
 
   sendMessage(event: string, data: any) {

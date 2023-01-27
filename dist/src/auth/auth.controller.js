@@ -23,6 +23,9 @@ let AuthController = class AuthController {
     login(authLoginDto) {
         return this.authService.login(authLoginDto);
     }
+    async rootOne() {
+        return { data: true };
+    }
 };
 __decorate([
     (0, common_1.HttpCode)(200),
@@ -32,6 +35,13 @@ __decorate([
     __metadata("design:paramtypes", [auth_login_dto_1.AuthLoginDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Get)('/login/view'),
+    (0, common_1.Render)("login"),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "rootOne", null);
 AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

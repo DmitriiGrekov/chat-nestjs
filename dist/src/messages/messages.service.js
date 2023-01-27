@@ -21,11 +21,19 @@ let MessagesService = class MessagesService {
     async send(createMessageDto, userId) {
         try {
             const room = await this.roomService.findOne({
-                where: { AND: [{ id: createMessageDto.room_id }, { users: { some: { id: userId } } }] },
+                where: {
+                    AND: [
+                        { id: createMessageDto.room_id },
+                        { users: { some: { id: userId } } },
+                    ],
+                },
             });
             if (!room)
-                throw new common_1.HttpException('Вы не являетесь участником данной комнаты', common_1.HttpStatus.BAD_REQUEST);
-            return await this.prismaService.message.create({ data: Object.assign(Object.assign({}, createMessageDto), { user_id: userId }) });
+                throw new common_1.HttpException("Вы не являетесь участником данной комнаты", common_1.HttpStatus.BAD_REQUEST);
+            return await this.prismaService.message.create({
+                data: Object.assign(Object.assign({}, createMessageDto), { user_id: userId }),
+                include: { User: { select: { firstname: true, lastname: true, patroname: true, id: true } } }
+            });
         }
         catch (error) {
             throw new common_1.BadRequestException(error);
@@ -35,21 +43,24 @@ let MessagesService = class MessagesService {
         try {
             const room = await this.roomService.findOne({
                 where: { AND: [{ id: roomId }, { users: { some: { id: userId } } }] },
-                include: { users: true }
+                include: { users: true },
             });
             if (!room)
                 throw new common_1.HttpException("Вы не являетесь участником данной комнаты", common_1.HttpStatus.BAD_REQUEST);
             return await this.prismaService.message.findMany(params);
         }
         catch (error) {
+            console.log(error);
             throw new common_1.BadRequestException(error);
         }
     }
     async remove(id, user_id) {
         try {
-            const message = await this.prismaService.message.findFirst({ where: { user_id, id } });
+            const message = await this.prismaService.message.findFirst({
+                where: { user_id, id },
+            });
             if (!message)
-                throw new common_1.HttpException('Сообщение не найдено', common_1.HttpStatus.NOT_FOUND);
+                throw new common_1.HttpException("Сообщение не найдено", common_1.HttpStatus.NOT_FOUND);
             return await this.prismaService.message.delete({ where: { id } });
         }
         catch (error) {

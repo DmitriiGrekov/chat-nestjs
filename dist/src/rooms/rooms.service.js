@@ -32,6 +32,7 @@ let RoomsService = class RoomsService {
             return await this.prismaService.room.findMany(params);
         }
         catch (error) {
+            console.log(error);
             throw new common_1.BadRequestException(error);
         }
     }
@@ -43,6 +44,7 @@ let RoomsService = class RoomsService {
             return room;
         }
         catch (error) {
+            console.log(error);
             throw new common_1.BadRequestException(error);
         }
     }

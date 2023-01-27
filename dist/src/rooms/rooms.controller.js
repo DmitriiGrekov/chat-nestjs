@@ -21,24 +21,85 @@ const jwt_auth_guard_1 = require("../../src/auth/guards/jwt-auth.guard");
 const get_user_decorator_1 = require("../../src/auth/decorators/get-user.decorator");
 const add_user_room_dto_1 = require("./dto/add-user-room.dto");
 const delete_user_room_dto_1 = require("./dto/delete-user-room.dto");
+const messages_service_1 = require("../messages/messages.service");
+const jwt_1 = require("@nestjs/jwt");
 let RoomsController = class RoomsController {
-    constructor(roomsService) {
+    constructor(roomsService, messageService, jwtService) {
         this.roomsService = roomsService;
+        this.messageService = messageService;
+        this.jwtService = jwtService;
+    }
+    async root(token) {
+        const userId = await this.jwtService.decode(token.access_token);
+        const rooms = await this.roomsService.findAll({
+            where: { users: { some: { id: +userId.sub } } },
+            include: {
+                users: {
+                    select: {
+                        firstname: true,
+                        lastname: true,
+                        patroname: true,
+                        id: true,
+                        image: true,
+                    },
+                },
+            },
+        });
+        return { rooms: rooms };
+    }
+    async rootOne(id) {
+        const room = await this.roomsService.findOne({ where: { id: +id } });
+        const messages = await this.messageService.findAll({
+            where: { room_id: +id },
+            include: { User: { select: { firstname: true, lastname: true, patroname: true, image: true, id: true } } },
+            orderBy: { created_at: "desc" },
+            take: 7
+        }, +id, +48);
+        console.log(messages);
+        return { room: room, messages: messages.reverse() };
     }
     async create(createRoomDto, userId) {
         const room = await this.roomsService.create(createRoomDto, userId);
         return this.roomsService.addUserRoom(userId, room.id, { userId: userId });
     }
     findAll(userId) {
+        console.log('hello');
         return this.roomsService.findAll({
             where: { users: { some: { id: +userId } } },
-            include: { users: { select: { firstname: true, lastname: true, patroname: true, id: true, image: true } }, Message: true }
+            include: {
+                users: {
+                    select: {
+                        firstname: true,
+                        lastname: true,
+                        patroname: true,
+                        id: true,
+                        image: true,
+                    },
+                },
+                message: true,
+            },
         });
     }
     findOne(id, userId) {
         return this.roomsService.findOne({
             where: { AND: [{ id: +id }, { users: { some: { id: userId } } }] },
-            include: { users: { select: { firstname: true, lastname: true, patroname: true, id: true } }, Message: true }
+            include: {
+                users: {
+                    select: {
+                        firstname: true,
+                        lastname: true,
+                        patroname: true,
+                        id: true,
+                    },
+                },
+                message: {
+                    include: {
+                        User: {
+                            select: { id: true, firstname: true, lastname: true, patroname: true }
+                        }
+                    }
+                },
+            },
         });
     }
     update(roomId, updateRoomDto, createrId) {
@@ -55,6 +116,22 @@ let RoomsController = class RoomsController {
     }
 };
 __decorate([
+    (0, common_1.Get)('index/view'),
+    (0, common_1.Render)("index"),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], RoomsController.prototype, "root", null);
+__decorate([
+    (0, common_1.Get)('index/one/view/:id'),
+    (0, common_1.Render)("one-room"),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], RoomsController.prototype, "rootOne", null);
+__decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
@@ -65,7 +142,7 @@ __decorate([
 ], RoomsController.prototype, "create", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Get)('list'),
+    (0, common_1.Get)("list"),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),
@@ -73,8 +150,8 @@ __decorate([
 ], RoomsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Get)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Get)(":id"),
+    __param(0, (0, common_1.Param)("id")),
     __param(1, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Number]),
@@ -82,8 +159,8 @@ __decorate([
 ], RoomsController.prototype, "findOne", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Patch)(':roomId'),
-    __param(0, (0, common_1.Param)('roomId')),
+    (0, common_1.Patch)(":roomId"),
+    __param(0, (0, common_1.Param)("roomId")),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
@@ -92,16 +169,16 @@ __decorate([
 ], RoomsController.prototype, "update", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Delete)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Delete)(":id"),
+    __param(0, (0, common_1.Param)("id")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], RoomsController.prototype, "remove", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Post)(':roomId/user/disconnect'),
-    __param(0, (0, common_1.Param)('roomId')),
+    (0, common_1.Post)(":roomId/user/disconnect"),
+    __param(0, (0, common_1.Param)("roomId")),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
@@ -110,8 +187,8 @@ __decorate([
 ], RoomsController.prototype, "deleteUserFromRoom", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Post)(':roomId/user'),
-    __param(0, (0, common_1.Param)('roomId')),
+    (0, common_1.Post)(":roomId/user"),
+    __param(0, (0, common_1.Param)("roomId")),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
@@ -119,8 +196,10 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], RoomsController.prototype, "addUserRoom", null);
 RoomsController = __decorate([
-    (0, common_1.Controller)('rooms'),
-    __metadata("design:paramtypes", [rooms_service_1.RoomsService])
+    (0, common_1.Controller)("rooms"),
+    __metadata("design:paramtypes", [rooms_service_1.RoomsService,
+        messages_service_1.MessagesService,
+        jwt_1.JwtService])
 ], RoomsController);
 exports.RoomsController = RoomsController;
 //# sourceMappingURL=rooms.controller.js.map
