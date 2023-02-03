@@ -12,8 +12,8 @@ export class AuthService {
     private jwtService: JwtService
   ) { }
 
-  async validateUser(phone: string, pass: string): Promise<any> {
-    const user = await this.usersService.findOne({ where: { phone: phone } });
+  async validateUser(login: string, pass: string): Promise<any> {
+    const user = await this.usersService.findOne({ where: { login: login } });
     if (user && await bcrypt.compare(pass, user.password)) {
       return user;
     }
@@ -22,11 +22,13 @@ export class AuthService {
 
   async login(authLoginDto: AuthLoginDto) {
     try {
-      const validateUser = await this.validateUser(authLoginDto.phone, authLoginDto.password)
+      const validateUser = await this.validateUser(authLoginDto.login, authLoginDto.password)
       if (!validateUser) throw new HttpException('Вы ввели не правильный логин или пароль', HttpStatus.FORBIDDEN)
-      const payload = { phone: validateUser.phone, sub: validateUser.id };
+      const payload = { login: validateUser.login, sub: validateUser.id, name: `${validateUser.firstname} ${validateUser.lastname}` };
       return {
         access_token: this.jwtService.sign(payload, { secret: process.env.JWT_SECRET }),
+        user_id: validateUser.id,
+        login: validateUser.login
       };
     } catch (error) {
       throw new BadRequestException(error);

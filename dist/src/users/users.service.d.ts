@@ -10,7 +10,7 @@ export declare class UsersService {
     private prismaService;
     constructor(prismaService: PrismaService);
     create(createUserDto: CreateUserDto): Promise<User>;
-    findAll(): Promise<User[]>;
+    findAll(params?: any): Promise<User[]>;
     findOne(params: IUserSearch): Promise<User>;
     update(id: number, updateUserDto: UpdateUserDto): Promise<User>;
     remove(id: number): Promise<User>;

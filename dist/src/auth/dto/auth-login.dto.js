@@ -15,9 +15,8 @@ class AuthLoginDto {
 }
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsPhoneNumber)(),
     __metadata("design:type", String)
-], AuthLoginDto.prototype, "phone", void 0);
+], AuthLoginDto.prototype, "login", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)

@@ -19,18 +19,42 @@ const create_message_dto_1 = require("./dto/create-message.dto");
 const jwt_auth_guard_1 = require("../../src/auth/guards/jwt-auth.guard");
 const get_user_decorator_1 = require("../../src/auth/decorators/get-user.decorator");
 const message_gateway_1 = require("./message.gateway");
+const users_controller_1 = require("../users/users.controller");
+const chat_gateway_1 = require("../rooms/chat.gateway");
+const rooms_service_1 = require("../rooms/rooms.service");
+const nestjs_redis_1 = require("@liaoliaots/nestjs-redis");
+const ioredis_1 = require("ioredis");
 let MessagesController = class MessagesController {
-    constructor(messagesService, messageGateway) {
+    constructor(messagesService, messageGateway, roomService, chatGateway, redis) {
         this.messagesService = messagesService;
         this.messageGateway = messageGateway;
+        this.roomService = roomService;
+        this.chatGateway = chatGateway;
+        this.redis = redis;
     }
     async send(createMessageDto, userId) {
         const message = await this.messagesService.send(createMessageDto, +userId);
         this.messageGateway.sendMessage(message, createMessageDto.room_id);
+        const siteConnected = JSON.parse(await this.redis.get('siteConnected'));
+        const room = await this.roomService.findOne({ where: { id: createMessageDto.room_id }, include: { users: { select: { id: true } } } });
+        const userNotifySockets = [];
+        room['users'].map((user) => {
+            siteConnected.find(connect => {
+                if (Object.keys(connect).includes(user.id.toString())) {
+                    userNotifySockets.push(connect[user.id.toString()]);
+                }
+            });
+        });
+        this.chatGateway.sendUnreadedMessage(true, userNotifySockets);
         return message;
     }
     findAll(roomId, userId) {
-        return this.messagesService.findAll({ where: { room_id: +roomId }, include: { User: { select: { firstname: true, lastname: true, patroname: true, image: true, id: true } } } }, +roomId, userId);
+        return this.messagesService.findAll({
+            where: { room_id: +roomId },
+            include: { User: Object.assign({}, users_controller_1.userSelect) },
+            orderBy: { created_at: 'asc' },
+            take: 50
+        }, +roomId, userId);
     }
     remove(id, userId) {
         return this.messagesService.remove(+id, userId);
@@ -65,8 +89,12 @@ __decorate([
 ], MessagesController.prototype, "remove", null);
 MessagesController = __decorate([
     (0, common_1.Controller)("messages"),
+    __param(4, (0, nestjs_redis_1.InjectRedis)()),
     __metadata("design:paramtypes", [messages_service_1.MessagesService,
-        message_gateway_1.MessageGateway])
+        message_gateway_1.MessageGateway,
+        rooms_service_1.RoomsService,
+        chat_gateway_1.ChatGateway,
+        ioredis_1.default])
 ], MessagesController);
 exports.MessagesController = MessagesController;
 //# sourceMappingURL=messages.controller.js.map

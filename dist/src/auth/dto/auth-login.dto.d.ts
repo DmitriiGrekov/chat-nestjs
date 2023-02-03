@@ -1,4 +1,4 @@
 export declare class AuthLoginDto {
-    phone: string;
+    login: string;
     password: string;
 }

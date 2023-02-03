@@ -20,47 +20,58 @@ const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const jwt_1 = require("@nestjs/jwt");
 const nestjs_redis_1 = require("@liaoliaots/nestjs-redis");
 const ioredis_1 = require("ioredis");
+const getUserFromSocket_1 = require("../common/getUserFromSocket");
 let MessageGateway = class MessageGateway {
     constructor(jwtService, redis) {
         this.jwtService = jwtService;
         this.redis = redis;
     }
     onModuleInit() {
-        console.log('Message INIT');
     }
     async handleConnection(client) {
-        const data = await this.getUserFromSocket(client);
-        const redisRoom = JSON.parse(await this.redis.get(data.roomId.toString()));
+        const data = await (0, getUserFromSocket_1.getUserFromSocket)(client);
+        if (!data)
+            return;
+        const redisRoom = JSON.parse(await this.redis.get(`room_id-${data === null || data === void 0 ? void 0 : data.roomId}`));
+        const userSocket = { userId: data.userId, socketId: data.socketId };
         if (!redisRoom) {
-            console.log(`Connect ${data.socketId}`);
-            return await this.redis.set(data.roomId.toString(), JSON.stringify([data.socketId]).toString());
+            return await this.redis.set(`room_id-${data === null || data === void 0 ? void 0 : data.roomId}`, JSON.stringify([userSocket]).toString());
         }
-        redisRoom.push(data.socketId);
-        await this.redis.set(data.roomId.toString(), JSON.stringify(redisRoom));
-        console.log(`Connect ${data.socketId}`);
+        let userExists = redisRoom.findIndex((user) => user.userId === data.userId);
+        if (userExists >= 0) {
+            redisRoom[userExists].socketId = data.socketId;
+            return await this.redis.set(`room_id-${data === null || data === void 0 ? void 0 : data.roomId}`, JSON.stringify(redisRoom));
+        }
+        redisRoom.push(userSocket);
+        await this.redis.set(`room_id-${data === null || data === void 0 ? void 0 : data.roomId}`, JSON.stringify(redisRoom));
     }
     async handleDisconnect(client) {
-        const data = await this.getUserFromSocket(client);
-        let redisRoom = JSON.parse(await this.redis.get(data.roomId.toString()));
-        if (redisRoom.includes(data.socketId))
-            redisRoom = redisRoom.filter((socket) => socket != data.socketId);
-        await this.redis.set(data.roomId.toString(), JSON.stringify(redisRoom));
-        console.log(`Disconnect ${data.socketId}`);
+        const data = await (0, getUserFromSocket_1.getUserFromSocket)(client);
+        if (!data)
+            return;
+        const dateDisconected = new Date();
+        const redisUser = JSON.parse(await this.redis.get(`user_id-${data === null || data === void 0 ? void 0 : data.userId}`));
+        if (!redisUser) {
+            const newUser = [{ [data.roomId]: { date_closed: dateDisconected.toString() } }];
+            console.log(`Disconnect Message ${client.id} `);
+            return await this.redis.set(`user_id-${data === null || data === void 0 ? void 0 : data.userId}`, JSON.stringify(newUser));
+        }
+        redisUser.forEach(user => {
+            if (user[data.roomId])
+                return user[data.roomId] = dateDisconected;
+            user[data.roomId] = dateDisconected;
+        });
+        await this.redis.set(`user_id-${data === null || data === void 0 ? void 0 : data.userId}`, JSON.stringify(redisUser));
+        console.log(`Disconnect Message ${client.id} `);
     }
     async sendMessage(data, roomId) {
-        let redisRoom = JSON.parse(await this.redis.get(roomId.toString()));
+        let redisRoom = JSON.parse(await this.redis.get(`room_id-${roomId.toString()}`));
+        if (!redisRoom)
+            throw new common_1.HttpException('Ошибка отправки сообщения', common_1.HttpStatus.BAD_GATEWAY);
+        const socketIds = redisRoom.map(r => { return r.socketId; });
+        console.log(socketIds);
         if (redisRoom)
-            this.server.to(redisRoom).emit('message', data);
-    }
-    async getUserFromSocket(socket) {
-        var _a;
-        const token = (_a = socket.handshake.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(' ')[1];
-        let userId;
-        if (token)
-            userId = this.jwtService.decode(token).sub;
-        const roomId = +socket.handshake.query.room_id;
-        const socketId = socket.id;
-        return { userId, roomId, socketId };
+            this.server.to(socketIds).emit('message', data);
     }
 };
 __decorate([
@@ -81,9 +92,6 @@ __decorate([
 ], MessageGateway.prototype, "handleDisconnect", null);
 MessageGateway = __decorate([
     (0, websockets_1.WebSocketGateway)(8080, {
-        cors: {
-            origin: '*',
-        },
         namespace: "message"
     }),
     __param(1, (0, nestjs_redis_1.InjectRedis)()),

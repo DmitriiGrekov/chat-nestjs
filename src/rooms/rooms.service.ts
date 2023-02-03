@@ -5,10 +5,16 @@ import { CreateRoomDto } from '../../src/rooms/dto/create-room.dto';
 import { UpdateRoomDto } from '../../src/rooms/dto/update-room.dto';
 import { AddUserRoomDto } from '../../src/rooms//dto/add-user-room.dto';
 import { DeleteUserRoomDto } from './dto/delete-user-room.dto';
+import Redis from 'ioredis';
+import { InjectRedis } from '@liaoliaots/nestjs-redis';
+import { RoomsGateway } from './rooms.gateway';
 
 @Injectable()
 export class RoomsService {
-  constructor(private prismaService: PrismaService) { }
+  constructor(
+    private prismaService: PrismaService,
+    @InjectRedis() private redis: Redis,
+    private roomsGateway: RoomsGateway) { }
 
   async create(createRoomDto: CreateRoomDto, userId?: number): Promise<Room> {
     try {
@@ -56,7 +62,6 @@ export class RoomsService {
       if (!room) throw new HttpException('Комната не найдена', HttpStatus.NOT_FOUND);
       return await this.prismaService.room.delete({ where: { id: id } });
     } catch (error) {
-      console.log(error);
       throw new BadRequestException(error)
     }
   }
@@ -69,7 +74,7 @@ export class RoomsService {
       const user = await this.prismaService.user.findFirst({ where: { id: addUserRoomDto.userId } });
       if (!user) throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
 
-      return await this.prismaService.room.update({
+      const response = await this.prismaService.room.update({
         where: { id: roomId },
         data: {
           users:
@@ -79,6 +84,12 @@ export class RoomsService {
         },
         include: { users: { select: { id: true, firstname: true, lastname: true, patroname: true, image: true } } }
       });
+      let socketId: string = await this.redis.get(addUserRoomDto.userId.toString());
+      console.log(socketId);
+      if (socketId) {
+        this.roomsGateway.sentNotification(socketId, response);
+      }
+      return response
     } catch (error) {
       throw new BadRequestException(error);
     }

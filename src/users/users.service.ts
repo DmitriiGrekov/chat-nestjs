@@ -5,6 +5,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { User } from '@prisma/client';
 import { UserResponseDto } from './dto/user-response.dto';
+import { QueryDto } from './dto/query.dto';
 
 interface IUserSearch {
   where: any;
@@ -17,8 +18,8 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     try {
-      const userExists = await this.prismaService.user.findFirst({ where: { phone: createUserDto.phone } })
-      if (userExists) throw new HttpException('Пользователь уже существует', HttpStatus.BAD_REQUEST);
+      const userExists = await this.prismaService.user.findFirst({ where: { OR: [{ login: createUserDto.login }, { phone: createUserDto.phone }, { email: createUserDto.email }] } })
+      if (userExists) throw new HttpException('Данный логин, телефон или почта уже существует', HttpStatus.BAD_REQUEST);
       const hash = await bcrypt.hash(createUserDto.password, 10);
       return await this.prismaService.user.create({ data: { ...createUserDto, password: hash } });
     } catch (error) {
@@ -26,9 +27,9 @@ export class UsersService {
     }
   }
 
-  async findAll(): Promise<User[]> {
+  async findAll(params?): Promise<User[]> {
     try {
-      return await this.prismaService.user.findMany();
+      return await this.prismaService.user.findMany(params);
     } catch (error) {
       throw new BadRequestException(error)
     }
@@ -64,10 +65,7 @@ export class UsersService {
     }
   }
 
-  exclude<User, Key extends keyof User>(
-    user: User,
-    keys: Key[]
-  ): Omit<User, Key> {
+  exclude<User, Key extends keyof User>(user: User, keys: Key[]): Omit<User, Key> {
     for (let key of keys) {
       delete user[key]
     }

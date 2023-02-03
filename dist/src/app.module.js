@@ -15,21 +15,27 @@ const rooms_module_1 = require("./rooms/rooms.module");
 const jwt_auth_guard_1 = require("./auth/guards/jwt-auth.guard");
 const jwt_auth_strategies_1 = require("./auth/strategies/jwt-auth.strategies");
 const messages_module_1 = require("./messages/messages.module");
-const events_module_1 = require("./events/events.module");
 const nestjs_redis_1 = require("@liaoliaots/nestjs-redis");
+const config_1 = require("@nestjs/config");
+const configuration_1 = require("./config/configuration");
 let AppModule = class AppModule {
 };
 AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            users_module_1.UsersModule, auth_module_1.AuthModule, rooms_module_1.RoomsModule, messages_module_1.MessagesModule, events_module_1.EventsModule,
+            users_module_1.UsersModule, auth_module_1.AuthModule, rooms_module_1.RoomsModule, messages_module_1.MessagesModule,
             nestjs_redis_1.RedisModule.forRoot({
                 config: {
-                    host: 'localhost',
-                    port: 6379,
-                    password: 'sp7p6LYn'
+                    host: process.env.REDIS_HOST,
+                    port: +process.env.REDIS_PORT,
+                    password: process.env.REDIS_PASSWORD
                 }
-            })
+            }),
+            config_1.ConfigModule.forRoot({
+                envFilePath: '.env',
+                isGlobal: true,
+                load: [configuration_1.default]
+            }),
         ],
         controllers: [],
         providers: [jwt_auth_guard_1.JwtAuthGuard, jwt_auth_strategies_1.JwtStrategy, jwt_1.JwtService],

@@ -8,6 +8,7 @@ import {
   Delete,
   HttpCode,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -16,6 +17,18 @@ import { User } from '@prisma/client';
 import { UserResponseDto } from './dto/user-response.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/decorators/get-user.decorator';
+import { QueryDto } from './dto/query.dto';
+
+export const userSelect = {
+  select: {
+    firstname: true,
+    lastname: true,
+    patroname: true,
+    id: true,
+    image: true,
+    login: true
+  }
+}
 
 @Controller('users')
 export class UsersController {
@@ -32,21 +45,23 @@ export class UsersController {
   findProfile(@CurrentUser() userId: number) {
     return this.usersService.findOne({
       where: { id: +userId },
-      select: { firstname: true, lastname: true, patroname: true, phone: true, id: true }
+      ...userSelect
     });
   }
 
   @HttpCode(200)
   @Get('list')
-  findAll(): Promise<User[]> {
-    return this.usersService.findAll();
+  findAll(@Query() queryDto: QueryDto): Promise<User[]> {
+    let params = {}
+    if (queryDto)
+      params = { where: { login: queryDto.search }, ...userSelect }
+    return this.usersService.findAll(params);
   }
 
   @HttpCode(200)
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    const user = await this.usersService.findOne({ where: { id: +id } });
-    return this.usersService.exclude(user, ['password', 'email', 'phone']);
+    return await this.usersService.findOne({ where: { id: +id }, ...userSelect });
   }
 
   @HttpCode(200)

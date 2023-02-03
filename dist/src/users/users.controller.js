@@ -12,13 +12,24 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UsersController = void 0;
+exports.UsersController = exports.userSelect = void 0;
 const common_1 = require("@nestjs/common");
 const users_service_1 = require("./users.service");
 const create_user_dto_1 = require("./dto/create-user.dto");
 const update_user_dto_1 = require("./dto/update-user.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const get_user_decorator_1 = require("../auth/decorators/get-user.decorator");
+const query_dto_1 = require("./dto/query.dto");
+exports.userSelect = {
+    select: {
+        firstname: true,
+        lastname: true,
+        patroname: true,
+        id: true,
+        image: true,
+        login: true
+    }
+};
 let UsersController = class UsersController {
     constructor(usersService) {
         this.usersService = usersService;
@@ -27,17 +38,16 @@ let UsersController = class UsersController {
         return this.usersService.create(createUserDto);
     }
     findProfile(userId) {
-        return this.usersService.findOne({
-            where: { id: +userId },
-            select: { firstname: true, lastname: true, patroname: true, phone: true, id: true }
-        });
+        return this.usersService.findOne(Object.assign({ where: { id: +userId } }, exports.userSelect));
     }
-    findAll() {
-        return this.usersService.findAll();
+    findAll(queryDto) {
+        let params = {};
+        if (queryDto)
+            params = Object.assign({ where: { login: queryDto.search } }, exports.userSelect);
+        return this.usersService.findAll(params);
     }
     async findOne(id) {
-        const user = await this.usersService.findOne({ where: { id: +id } });
-        return this.usersService.exclude(user, ['password', 'email', 'phone']);
+        return await this.usersService.findOne(Object.assign({ where: { id: +id } }, exports.userSelect));
     }
     update(id, updateUserDto) {
         return this.usersService.update(+id, updateUserDto);
@@ -65,8 +75,9 @@ __decorate([
 __decorate([
     (0, common_1.HttpCode)(200),
     (0, common_1.Get)('list'),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [query_dto_1.QueryDto]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "findAll", null);
 __decorate([

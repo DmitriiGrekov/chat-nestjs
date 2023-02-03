@@ -8,13 +8,21 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoomsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const ioredis_1 = require("ioredis");
+const nestjs_redis_1 = require("@liaoliaots/nestjs-redis");
+const rooms_gateway_1 = require("./rooms.gateway");
 let RoomsService = class RoomsService {
-    constructor(prismaService) {
+    constructor(prismaService, redis, roomsGateway) {
         this.prismaService = prismaService;
+        this.redis = redis;
+        this.roomsGateway = roomsGateway;
     }
     async create(createRoomDto, userId) {
         try {
@@ -67,7 +75,6 @@ let RoomsService = class RoomsService {
             return await this.prismaService.room.delete({ where: { id: id } });
         }
         catch (error) {
-            console.log(error);
             throw new common_1.BadRequestException(error);
         }
     }
@@ -79,7 +86,7 @@ let RoomsService = class RoomsService {
             const user = await this.prismaService.user.findFirst({ where: { id: addUserRoomDto.userId } });
             if (!user)
                 throw new common_1.HttpException('Пользователь не найден', common_1.HttpStatus.NOT_FOUND);
-            return await this.prismaService.room.update({
+            const response = await this.prismaService.room.update({
                 where: { id: roomId },
                 data: {
                     users: {
@@ -88,6 +95,12 @@ let RoomsService = class RoomsService {
                 },
                 include: { users: { select: { id: true, firstname: true, lastname: true, patroname: true, image: true } } }
             });
+            let socketId = await this.redis.get(addUserRoomDto.userId.toString());
+            console.log(socketId);
+            if (socketId) {
+                this.roomsGateway.sentNotification(socketId, response);
+            }
+            return response;
         }
         catch (error) {
             throw new common_1.BadRequestException(error);
@@ -118,7 +131,10 @@ let RoomsService = class RoomsService {
 };
 RoomsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __param(1, (0, nestjs_redis_1.InjectRedis)()),
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        ioredis_1.default,
+        rooms_gateway_1.RoomsGateway])
 ], RoomsService);
 exports.RoomsService = RoomsService;
 //# sourceMappingURL=rooms.service.js.map

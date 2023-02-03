@@ -6,9 +6,10 @@ import { JwtStrategy } from '../../src/auth/strategies/jwt-auth.strategies';
 import { RoomsGateway } from './rooms.gateway';
 import { JwtService } from '@nestjs/jwt';
 import { MessagesService } from 'src/messages/messages.service';
+import { ChatGateway } from './chat.gateway';
 
 @Module({
   controllers: [RoomsController],
-  providers: [RoomsService, PrismaService, JwtStrategy, RoomsGateway, JwtService, MessagesService]
+  providers: [RoomsService, PrismaService, JwtStrategy, RoomsGateway, JwtService, MessagesService, ChatGateway]
 })
 export class RoomsModule { }

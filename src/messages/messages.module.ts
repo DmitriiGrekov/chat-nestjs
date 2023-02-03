@@ -1,22 +1,16 @@
-import { CacheModule, CacheStore, CACHE_MANAGER, forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { MessagesController } from './messages.controller';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RoomsService } from '../../src/rooms/rooms.service';
-import { EventsGateway } from '../../src/events/events.gateway';
 import { MessageGateway } from './message.gateway';
 import { JwtService } from '@nestjs/jwt';
-import redisStore from 'cache-manager-redis-store';
+import { RoomsGateway } from 'src/rooms/rooms.gateway';
+import { ChatGateway } from 'src/rooms/chat.gateway';
 
 @Module({
   controllers: [MessagesController],
-  providers: [MessagesService, PrismaService, RoomsService, EventsGateway, MessageGateway, JwtService],
-  imports: [
-    CacheModule.register({
-      store: redisStore,
-      host: 'localhost',
-      port: 6379,
-    }),
-  ]
+  providers: [MessagesService, PrismaService, RoomsService, MessageGateway, JwtService, RoomsGateway, ChatGateway],
+
 })
 export class MessagesModule { }

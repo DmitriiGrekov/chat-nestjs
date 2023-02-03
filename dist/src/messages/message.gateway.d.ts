@@ -8,10 +8,8 @@ export declare class MessageGateway implements OnModuleInit, OnGatewayConnection
     private redis;
     constructor(jwtService: JwtService, redis: Redis);
     server: Server;
-    private userData;
     onModuleInit(): void;
     handleConnection(client: Socket): Promise<"OK">;
-    handleDisconnect(client: Socket): Promise<void>;
+    handleDisconnect(client: Socket): Promise<"OK">;
     sendMessage(data: any, roomId: number): Promise<void>;
-    private getUserFromSocket;
 }

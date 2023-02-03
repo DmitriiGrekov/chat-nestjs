@@ -1,1 +1,1 @@
-{"version":3,"file":"add-user-room.dto.js","sourceRoot":"","sources":["../../../../src/rooms/dto/add-user-room.dto.ts"],"names":[],"mappings":";;;;;;;;;;;;AAAA,qDAA2C;AAE3C,MAAa,cAAc;CAI1B;AAFC;IAAC,IAAA,0BAAQ,GAAE;;8CACI;AAHjB,wCAIC"}
+{"version":3,"file":"add-user-room.dto.js","sourceRoot":"","sources":["../../../../src/rooms/dto/add-user-room.dto.ts"],"names":[],"mappings":";;;AAEA,MAAa,cAAc;CAG1B;AAHD,wCAGC"}

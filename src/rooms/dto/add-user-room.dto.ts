@@ -1,7 +1,6 @@
-import { IsNumber } from "class-validator";
+import { IsNumber, IsNumberString } from "class-validator";
 
 export class AddUserRoomDto {
 
-  @IsNumber()
   userId: number;
 }

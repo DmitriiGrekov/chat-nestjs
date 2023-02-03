@@ -19,83 +19,52 @@ import { AddUserRoomDto } from "./dto/add-user-room.dto";
 import { DeleteUserRoomDto } from "./dto/delete-user-room.dto";
 import { MessagesService } from "src/messages/messages.service";
 import { JwtService } from "@nestjs/jwt";
+import { userSelect } from "src/users/users.controller";
+import { InjectRedis } from "@liaoliaots/nestjs-redis";
+import Redis from "ioredis";
+
+
 
 @Controller("rooms")
 export class RoomsController {
   constructor(
     private readonly roomsService: RoomsService,
     private readonly messageService: MessagesService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    @InjectRedis() private redis: Redis
   ) { }
-
-  @Get('index/view')
-  @Render("index")
-  async root(@Query() token) {
-    const userId = await this.jwtService.decode(token.access_token);
-    const rooms = await this.roomsService.findAll({
-      where: { users: { some: { id: +userId.sub } } },
-      include: {
-        users: {
-          select: {
-            firstname: true,
-            lastname: true,
-            patroname: true,
-            id: true,
-            image: true,
-          },
-        },
-      },
-    });
-    return { rooms: rooms };
-  }
-
-  @Get('index/one/view/:id')
-  @Render("one-room")
-  async rootOne(@Param('id') id: number) {
-    const room = await this.roomsService.findOne({ where: { id: +id } });
-    const messages = await this.messageService.findAll(
-      {
-        where: { room_id: +id },
-        include: { User: { select: { firstname: true, lastname: true, patroname: true, image: true, id: true } } },
-        orderBy: { created_at: "desc" },
-        take: 7
-      },
-      +id,
-      +48
-    )
-    console.log(messages);
-    return { room: room, messages: messages.reverse() };
-  }
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  async create(
-    @Body() createRoomDto: CreateRoomDto,
-    @CurrentUser() userId: number
-  ) {
+  async create(@Body() createRoomDto: CreateRoomDto, @CurrentUser() userId: number) {
     const room = await this.roomsService.create(createRoomDto, userId);
     return this.roomsService.addUserRoom(userId, room.id, { userId: userId });
   }
 
   @UseGuards(JwtAuthGuard)
   @Get("list")
-  findAll(@CurrentUser() userId: number) {
-    console.log('hello')
-    return this.roomsService.findAll({
+  async findAll(@CurrentUser() userId: number) {
+    const rooms = await this.roomsService.findAll({
       where: { users: { some: { id: +userId } } },
+      orderBy: { created_at: 'desc' },
       include: {
         users: {
-          select: {
-            firstname: true,
-            lastname: true,
-            patroname: true,
-            id: true,
-            image: true,
-          },
+          ...userSelect
         },
         message: true,
       },
     });
+    const redisUser = JSON.parse(await this.redis.get(`user_id-${userId}`));
+
+    rooms.forEach(room => {
+      const dateDisconected = redisUser[0][room.id];
+      const unreadMessage = room['message'].filter(m => {
+        return new Date(m.created_at) > new Date(dateDisconected)
+      });
+      room['unreadMessage'] = unreadMessage.length;
+    });
+
+    return rooms;
   }
 
   @UseGuards(JwtAuthGuard)
@@ -105,17 +74,12 @@ export class RoomsController {
       where: { AND: [{ id: +id }, { users: { some: { id: userId } } }] },
       include: {
         users: {
-          select: {
-            firstname: true,
-            lastname: true,
-            patroname: true,
-            id: true,
-          },
+          ...userSelect
         },
         message: {
           include: {
             User: {
-              select: { id: true, firstname: true, lastname: true, patroname: true }
+              ...userSelect
             }
           }
         },
@@ -160,6 +124,7 @@ export class RoomsController {
     @Body() addUserRoomDto: AddUserRoomDto,
     @CurrentUser() createrId: number
   ) {
+    console.log(addUserRoomDto)
     return this.roomsService.addUserRoom(createrId, +roomId, addUserRoomDto);
   }
 

@@ -19,8 +19,8 @@ let AuthService = class AuthService {
         this.usersService = usersService;
         this.jwtService = jwtService;
     }
-    async validateUser(phone, pass) {
-        const user = await this.usersService.findOne({ where: { phone: phone } });
+    async validateUser(login, pass) {
+        const user = await this.usersService.findOne({ where: { login: login } });
         if (user && await bcrypt.compare(pass, user.password)) {
             return user;
         }
@@ -28,12 +28,14 @@ let AuthService = class AuthService {
     }
     async login(authLoginDto) {
         try {
-            const validateUser = await this.validateUser(authLoginDto.phone, authLoginDto.password);
+            const validateUser = await this.validateUser(authLoginDto.login, authLoginDto.password);
             if (!validateUser)
                 throw new common_1.HttpException('Вы ввели не правильный логин или пароль', common_1.HttpStatus.FORBIDDEN);
-            const payload = { phone: validateUser.phone, sub: validateUser.id };
+            const payload = { login: validateUser.login, sub: validateUser.id, name: `${validateUser.firstname} ${validateUser.lastname}` };
             return {
                 access_token: this.jwtService.sign(payload, { secret: process.env.JWT_SECRET }),
+                user_id: validateUser.id,
+                login: validateUser.login
             };
         }
         catch (error) {

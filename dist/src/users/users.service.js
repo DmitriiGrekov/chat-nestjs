@@ -19,9 +19,9 @@ let UsersService = class UsersService {
     }
     async create(createUserDto) {
         try {
-            const userExists = await this.prismaService.user.findFirst({ where: { phone: createUserDto.phone } });
+            const userExists = await this.prismaService.user.findFirst({ where: { OR: [{ login: createUserDto.login }, { phone: createUserDto.phone }, { email: createUserDto.email }] } });
             if (userExists)
-                throw new common_1.HttpException('Пользователь уже существует', common_1.HttpStatus.BAD_REQUEST);
+                throw new common_1.HttpException('Данный логин, телефон или почта уже существует', common_1.HttpStatus.BAD_REQUEST);
             const hash = await bcrypt.hash(createUserDto.password, 10);
             return await this.prismaService.user.create({ data: Object.assign(Object.assign({}, createUserDto), { password: hash }) });
         }
@@ -29,9 +29,9 @@ let UsersService = class UsersService {
             throw new common_1.BadRequestException(error);
         }
     }
-    async findAll() {
+    async findAll(params) {
         try {
-            return await this.prismaService.user.findMany();
+            return await this.prismaService.user.findMany(params);
         }
         catch (error) {
             throw new common_1.BadRequestException(error);

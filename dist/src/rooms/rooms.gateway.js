@@ -8,6 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoomsGateway = void 0;
 const common_1 = require("@nestjs/common");
@@ -15,30 +18,37 @@ const websockets_1 = require("@nestjs/websockets");
 const socket_io_1 = require("socket.io");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const jwt_1 = require("@nestjs/jwt");
+const nestjs_redis_1 = require("@liaoliaots/nestjs-redis");
+const ioredis_1 = require("ioredis");
+const getUserFromSocket_1 = require("../common/getUserFromSocket");
 let RoomsGateway = class RoomsGateway {
-    constructor(jwtService) {
+    constructor(jwtService, redis) {
         this.jwtService = jwtService;
+        this.redis = redis;
     }
     onModuleInit() {
-        console.log('init');
     }
     async handleConnection(client) {
-        const user = await this.getUserFromSocket(client);
-        this.userData = user;
+        const user = await (0, getUserFromSocket_1.getUserFromSocket)(client);
+        if (user === null)
+            return false;
+        await this.redis.set(user.userId.toString(), user.socketId.toString());
+        console.log(`Connect Room ${user.socketId} `);
+    }
+    async handleDisconnect(client) {
+        var _a;
+        const data = await (0, getUserFromSocket_1.getUserFromSocket)(client);
+        if (data === null)
+            return false;
+        let redisRoom = await this.redis.get((_a = data.userId) === null || _a === void 0 ? void 0 : _a.toString());
+        if (redisRoom)
+            await this.redis.del(data.userId.toString());
     }
     sendMessage(event, data) {
-        console.log(this.userData);
         this.server.to(this.userData.socketId).emit(data);
     }
-    async getUserFromSocket(socket) {
-        var _a;
-        const token = (_a = socket.handshake.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(' ')[1];
-        let userId;
-        if (token)
-            userId = this.jwtService.decode(token).sub;
-        const roomId = +socket.handshake.query.room_id;
-        const socketId = socket.id;
-        return { userId, roomId, socketId };
+    sentNotification(socketId, data) {
+        this.server.to(socketId).emit('addUserRoom', data);
     }
 };
 __decorate([
@@ -51,14 +61,19 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket]),
     __metadata("design:returntype", Promise)
 ], RoomsGateway.prototype, "handleConnection", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [socket_io_1.Socket]),
+    __metadata("design:returntype", Promise)
+], RoomsGateway.prototype, "handleDisconnect", null);
 RoomsGateway = __decorate([
     (0, websockets_1.WebSocketGateway)(8080, {
-        cors: {
-            origin: '*',
-        },
+        cors: true,
         namespace: "rooms"
     }),
-    __metadata("design:paramtypes", [jwt_1.JwtService])
+    __param(1, (0, nestjs_redis_1.InjectRedis)()),
+    __metadata("design:paramtypes", [jwt_1.JwtService, ioredis_1.default])
 ], RoomsGateway);
 exports.RoomsGateway = RoomsGateway;
 //# sourceMappingURL=rooms.gateway.js.map

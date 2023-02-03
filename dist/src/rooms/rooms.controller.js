@@ -23,80 +23,47 @@ const add_user_room_dto_1 = require("./dto/add-user-room.dto");
 const delete_user_room_dto_1 = require("./dto/delete-user-room.dto");
 const messages_service_1 = require("../messages/messages.service");
 const jwt_1 = require("@nestjs/jwt");
+const users_controller_1 = require("../users/users.controller");
+const nestjs_redis_1 = require("@liaoliaots/nestjs-redis");
+const ioredis_1 = require("ioredis");
 let RoomsController = class RoomsController {
-    constructor(roomsService, messageService, jwtService) {
+    constructor(roomsService, messageService, jwtService, redis) {
         this.roomsService = roomsService;
         this.messageService = messageService;
         this.jwtService = jwtService;
-    }
-    async root(token) {
-        const userId = await this.jwtService.decode(token.access_token);
-        const rooms = await this.roomsService.findAll({
-            where: { users: { some: { id: +userId.sub } } },
-            include: {
-                users: {
-                    select: {
-                        firstname: true,
-                        lastname: true,
-                        patroname: true,
-                        id: true,
-                        image: true,
-                    },
-                },
-            },
-        });
-        return { rooms: rooms };
-    }
-    async rootOne(id) {
-        const room = await this.roomsService.findOne({ where: { id: +id } });
-        const messages = await this.messageService.findAll({
-            where: { room_id: +id },
-            include: { User: { select: { firstname: true, lastname: true, patroname: true, image: true, id: true } } },
-            orderBy: { created_at: "desc" },
-            take: 7
-        }, +id, +48);
-        console.log(messages);
-        return { room: room, messages: messages.reverse() };
+        this.redis = redis;
     }
     async create(createRoomDto, userId) {
         const room = await this.roomsService.create(createRoomDto, userId);
         return this.roomsService.addUserRoom(userId, room.id, { userId: userId });
     }
-    findAll(userId) {
-        console.log('hello');
-        return this.roomsService.findAll({
+    async findAll(userId) {
+        const rooms = await this.roomsService.findAll({
             where: { users: { some: { id: +userId } } },
+            orderBy: { created_at: 'desc' },
             include: {
-                users: {
-                    select: {
-                        firstname: true,
-                        lastname: true,
-                        patroname: true,
-                        id: true,
-                        image: true,
-                    },
-                },
+                users: Object.assign({}, users_controller_1.userSelect),
                 message: true,
             },
         });
+        const redisUser = JSON.parse(await this.redis.get(`user_id-${userId}`));
+        rooms.forEach(room => {
+            const dateDisconected = redisUser[0][room.id];
+            const unreadMessage = room['message'].filter(m => {
+                return new Date(m.created_at) > new Date(dateDisconected);
+            });
+            room['unreadMessage'] = unreadMessage.length;
+        });
+        return rooms;
     }
     findOne(id, userId) {
         return this.roomsService.findOne({
             where: { AND: [{ id: +id }, { users: { some: { id: userId } } }] },
             include: {
-                users: {
-                    select: {
-                        firstname: true,
-                        lastname: true,
-                        patroname: true,
-                        id: true,
-                    },
-                },
+                users: Object.assign({}, users_controller_1.userSelect),
                 message: {
                     include: {
-                        User: {
-                            select: { id: true, firstname: true, lastname: true, patroname: true }
-                        }
+                        User: Object.assign({}, users_controller_1.userSelect)
                     }
                 },
             },
@@ -112,25 +79,10 @@ let RoomsController = class RoomsController {
         return this.roomsService.deleteUserFromRoom(createrId, +roomId, deleteUserRoomDto);
     }
     addUserRoom(roomId, addUserRoomDto, createrId) {
+        console.log(addUserRoomDto);
         return this.roomsService.addUserRoom(createrId, +roomId, addUserRoomDto);
     }
 };
-__decorate([
-    (0, common_1.Get)('index/view'),
-    (0, common_1.Render)("index"),
-    __param(0, (0, common_1.Query)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], RoomsController.prototype, "root", null);
-__decorate([
-    (0, common_1.Get)('index/one/view/:id'),
-    (0, common_1.Render)("one-room"),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number]),
-    __metadata("design:returntype", Promise)
-], RoomsController.prototype, "rootOne", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)(),
@@ -146,7 +98,7 @@ __decorate([
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], RoomsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
@@ -197,9 +149,11 @@ __decorate([
 ], RoomsController.prototype, "addUserRoom", null);
 RoomsController = __decorate([
     (0, common_1.Controller)("rooms"),
+    __param(3, (0, nestjs_redis_1.InjectRedis)()),
     __metadata("design:paramtypes", [rooms_service_1.RoomsService,
         messages_service_1.MessagesService,
-        jwt_1.JwtService])
+        jwt_1.JwtService,
+        ioredis_1.default])
 ], RoomsController);
 exports.RoomsController = RoomsController;
 //# sourceMappingURL=rooms.controller.js.map

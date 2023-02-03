@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessagesService = void 0;
 const common_1 = require("@nestjs/common");
+const users_controller_1 = require("../users/users.controller");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const rooms_service_1 = require("../../src/rooms/rooms.service");
 let MessagesService = class MessagesService {
@@ -32,7 +33,7 @@ let MessagesService = class MessagesService {
                 throw new common_1.HttpException("Вы не являетесь участником данной комнаты", common_1.HttpStatus.BAD_REQUEST);
             return await this.prismaService.message.create({
                 data: Object.assign(Object.assign({}, createMessageDto), { user_id: userId }),
-                include: { User: { select: { firstname: true, lastname: true, patroname: true, id: true } } }
+                include: { User: Object.assign({}, users_controller_1.userSelect) }
             });
         }
         catch (error) {
@@ -70,8 +71,7 @@ let MessagesService = class MessagesService {
 };
 MessagesService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        rooms_service_1.RoomsService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService, rooms_service_1.RoomsService])
 ], MessagesService);
 exports.MessagesService = MessagesService;
 //# sourceMappingURL=messages.service.js.map

@@ -1,4 +1,4 @@
-import { OnModuleInit, UseGuards } from '@nestjs/common';
+import { OnModuleInit, Session, UseGuards } from '@nestjs/common';
 import {
   OnGatewayConnection,
   WebSocketGateway,
@@ -8,43 +8,49 @@ import { Server, Socket } from 'socket.io';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { parse } from 'cookie';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRedis } from '@liaoliaots/nestjs-redis';
+import Redis from 'ioredis';
+import { getUserFromSocket } from 'src/common/getUserFromSocket';
 
 @WebSocketGateway(8080, {
-  cors: {
-    origin: '*',
-  },
+  cors: true,
   namespace: "rooms"
 })
 export class RoomsGateway implements OnModuleInit, OnGatewayConnection {
-  constructor(private jwtService: JwtService) { }
+  constructor(private jwtService: JwtService, @InjectRedis() private redis: Redis) { }
+
   @WebSocketServer()
   server: Server;
 
   private userData;
 
   onModuleInit() {
-    console.log('init')
   }
 
   @UseGuards(JwtAuthGuard)
   async handleConnection(client: Socket) {
-    const user = await this.getUserFromSocket(client);
-    this.userData = user;
+    const user = await getUserFromSocket(client);
+    if (user === null)
+      return false;
+    await this.redis.set(user.userId.toString(), user.socketId.toString());
+    console.log(`Connect Room ${user.socketId} `)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  async handleDisconnect(client: Socket) {
+    const data = await getUserFromSocket(client);
+    if (data === null)
+      return false;
+    let redisRoom = await this.redis.get(data.userId?.toString());
+    if (redisRoom)
+      await this.redis.del(data.userId.toString());
   }
 
   sendMessage(event: string, data: any) {
-    // return this.server.emit(event, data);
-    console.log(this.userData);
     this.server.to(this.userData.socketId).emit(data)
   }
 
-  private async getUserFromSocket(socket: Socket) {
-    const token = socket.handshake.headers.authorization?.split(' ')[1]
-    let userId: number;
-    if (token)
-      userId = this.jwtService.decode(token).sub;
-    const roomId = +socket.handshake.query.room_id
-    const socketId = socket.id;
-    return { userId, roomId, socketId }
+  sentNotification(socketId: string, data: any) {
+    this.server.to(socketId).emit('addUserRoom', data)
   }
 }
