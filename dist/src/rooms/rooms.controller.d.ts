@@ -19,11 +19,11 @@ export declare class RoomsController {
     remove(id: string): Promise<import(".prisma/client").Room>;
     deleteUserFromRoom(roomId: number, deleteUserRoomDto: DeleteUserRoomDto, createrId: number): Promise<import(".prisma/client").Room & {
         users: {
-            image: string;
-            id: number;
             firstname: string;
             lastname: string;
             patroname: string;
+            image: string;
+            id: number;
         }[];
     }>;
     addUserRoom(roomId: number, addUserRoomDto: AddUserRoomDto, createrId: number): Promise<import(".prisma/client").Room>;

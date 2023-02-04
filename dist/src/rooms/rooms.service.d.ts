@@ -19,11 +19,11 @@ export declare class RoomsService {
     addUserRoom(createrId: number, roomId: number, addUserRoomDto: AddUserRoomDto): Promise<Room>;
     deleteUserFromRoom(createrId: number, roomId: number, deleteUserRoomDto: DeleteUserRoomDto): Promise<Room & {
         users: {
-            image: string;
-            id: number;
             firstname: string;
             lastname: string;
             patroname: string;
+            image: string;
+            id: number;
         }[];
     }>;
 }

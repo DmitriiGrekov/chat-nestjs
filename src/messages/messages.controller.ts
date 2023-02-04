@@ -3,13 +3,9 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   UseGuards,
-  Inject,
-  CACHE_MANAGER,
-  CacheStore,
 } from "@nestjs/common";
 import { MessagesService } from "./messages.service";
 import { CreateMessageDto } from "./dto/create-message.dto";
@@ -29,23 +25,33 @@ export class MessagesController {
     private readonly messageGateway: MessageGateway,
     private readonly roomService: RoomsService,
     private readonly chatGateway: ChatGateway,
-    @InjectRedis() private redis: Redis) { }
+    @InjectRedis() private redis: Redis
+  ) { }
 
   @UseGuards(JwtAuthGuard)
   @Post("send")
-  async send(@Body() createMessageDto: CreateMessageDto, @CurrentUser() userId: number) {
+  async send(
+    @Body() createMessageDto: CreateMessageDto,
+    @CurrentUser() userId: number
+  ) {
     const message = await this.messagesService.send(createMessageDto, +userId);
     this.messageGateway.sendMessage(message, createMessageDto.room_id);
-    const siteConnected = JSON.parse(await this.redis.get('siteConnected'));
-    const room = await this.roomService.findOne({ where: { id: createMessageDto.room_id }, include: { users: { select: { id: true } } } });
+    const siteConnected = JSON.parse(await this.redis.get("siteConnected"));
+    const room = await this.roomService.findOne({
+      where: { id: createMessageDto.room_id },
+      include: { users: { select: { id: true } } },
+    });
     const userNotifySockets = [];
-    room['users'].map((user) => {
-      siteConnected.find(connect => {
+    room["users"].map((user: any) => {
+      siteConnected.find((connect: any) => {
+        console.log(connect);
         if (Object.keys(connect).includes(user.id.toString())) {
-          userNotifySockets.push(connect[user.id.toString()])
+          userNotifySockets.push(connect[user.id.toString()]);
         }
-      })
-    })
+      });
+    });
+
+    console.log(userNotifySockets);
 
     this.chatGateway.sendUnreadedMessage(true, userNotifySockets);
     return message;
@@ -58,8 +64,8 @@ export class MessagesController {
       {
         where: { room_id: +roomId },
         include: { User: { ...userSelect } },
-        orderBy: { created_at: 'asc' },
-        take: 50
+        orderBy: { created_at: "asc" },
+        take: 50,
       },
       +roomId,
       userId

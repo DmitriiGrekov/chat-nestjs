@@ -35,16 +35,21 @@ let MessagesController = class MessagesController {
     async send(createMessageDto, userId) {
         const message = await this.messagesService.send(createMessageDto, +userId);
         this.messageGateway.sendMessage(message, createMessageDto.room_id);
-        const siteConnected = JSON.parse(await this.redis.get('siteConnected'));
-        const room = await this.roomService.findOne({ where: { id: createMessageDto.room_id }, include: { users: { select: { id: true } } } });
+        const siteConnected = JSON.parse(await this.redis.get("siteConnected"));
+        const room = await this.roomService.findOne({
+            where: { id: createMessageDto.room_id },
+            include: { users: { select: { id: true } } },
+        });
         const userNotifySockets = [];
-        room['users'].map((user) => {
-            siteConnected.find(connect => {
+        room["users"].map((user) => {
+            siteConnected.find((connect) => {
+                console.log(connect);
                 if (Object.keys(connect).includes(user.id.toString())) {
                     userNotifySockets.push(connect[user.id.toString()]);
                 }
             });
         });
+        console.log(userNotifySockets);
         this.chatGateway.sendUnreadedMessage(true, userNotifySockets);
         return message;
     }
@@ -52,8 +57,8 @@ let MessagesController = class MessagesController {
         return this.messagesService.findAll({
             where: { room_id: +roomId },
             include: { User: Object.assign({}, users_controller_1.userSelect) },
-            orderBy: { created_at: 'asc' },
-            take: 50
+            orderBy: { created_at: "asc" },
+            take: 50,
         }, +roomId, userId);
     }
     remove(id, userId) {

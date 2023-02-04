@@ -28,7 +28,6 @@ AppModule = __decorate([
                 config: {
                     host: process.env.REDIS_HOST,
                     port: +process.env.REDIS_PORT,
-                    password: process.env.REDIS_PASSWORD
                 }
             }),
             config_1.ConfigModule.forRoot({

@@ -26,32 +26,34 @@ let ChatGateway = class ChatGateway {
         this.jwtService = jwtService;
         this.redis = redis;
     }
-    onModuleInit() {
-    }
+    onModuleInit() { }
     async handleConnection(client) {
         const user = await (0, getUserFromSocket_1.getUserFromSocket)(client);
         if (user === null)
             return false;
-        const siteConnectedArray = JSON.parse(await this.redis.get('siteConnected'));
+        const siteConnectedArray = JSON.parse(await this.redis.get("siteConnected"));
         if (!siteConnectedArray)
             return false;
+        if (siteConnectedArray.find((conn) => Object.keys(conn).includes(user.userId.toString())))
+            return false;
         siteConnectedArray.push({ [user.userId]: user.socketId });
-        await this.redis.set('siteConnected', JSON.stringify(siteConnectedArray));
+        await this.redis.set("siteConnected", JSON.stringify(siteConnectedArray));
         console.log(`Connect chat ${user.socketId} `);
     }
     async handleDisconnect(client) {
         const user = await (0, getUserFromSocket_1.getUserFromSocket)(client);
         if (user === null)
             return false;
-        const siteConnectedArray = JSON.parse(await this.redis.get('siteConnected'));
+        const siteConnectedArray = JSON.parse(await this.redis.get("siteConnected"));
         if (!siteConnectedArray)
             return false;
-        siteConnectedArray.pop({ [user.userId]: user.socketId });
-        await this.redis.set('siteConnected', JSON.stringify(siteConnectedArray));
+        siteConnectedArray.pop({ [user.userId.toString()]: user.socketId });
+        console.log(siteConnectedArray);
+        await this.redis.set("siteConnected", JSON.stringify(siteConnectedArray));
         console.log(`Disconnect site ${client.id}`);
     }
     sendUnreadedMessage(data, sockets) {
-        this.server.to(sockets).emit('chatsUnreadedMessage', data);
+        this.server.to(sockets).emit("chatsUnreadedMessage", data);
     }
 };
 __decorate([
@@ -73,10 +75,11 @@ __decorate([
 ChatGateway = __decorate([
     (0, websockets_1.WebSocketGateway)(8080, {
         cors: true,
-        namespace: "chat"
+        namespace: "chat",
     }),
     __param(1, (0, nestjs_redis_1.InjectRedis)()),
-    __metadata("design:paramtypes", [jwt_1.JwtService, ioredis_1.default])
+    __metadata("design:paramtypes", [jwt_1.JwtService,
+        ioredis_1.default])
 ], ChatGateway);
 exports.ChatGateway = ChatGateway;
 //# sourceMappingURL=chat.gateway.js.map
