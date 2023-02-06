@@ -17,6 +17,4 @@ export class AuthController {
   async rootOne() {
     return { data: true };
   }
-
-
 }

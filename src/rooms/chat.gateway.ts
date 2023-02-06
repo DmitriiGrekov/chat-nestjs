@@ -42,7 +42,6 @@ export class ChatGateway implements OnModuleInit, OnGatewayConnection {
       return false;
     siteConnectedArray.push({ [user.userId]: user.socketId });
     await this.redis.set("siteConnected", JSON.stringify(siteConnectedArray));
-    console.log(`Connect chat ${user.socketId} `);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -54,9 +53,7 @@ export class ChatGateway implements OnModuleInit, OnGatewayConnection {
     );
     if (!siteConnectedArray) return false;
     siteConnectedArray.pop({ [user.userId.toString()]: user.socketId });
-    console.log(siteConnectedArray);
     await this.redis.set("siteConnected", JSON.stringify(siteConnectedArray));
-    console.log(`Disconnect site ${client.id}`);
   }
 
   sendUnreadedMessage(data: any, sockets: string[]) {

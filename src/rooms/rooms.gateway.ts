@@ -33,7 +33,6 @@ export class RoomsGateway implements OnModuleInit, OnGatewayConnection {
     if (user === null)
       return false;
     await this.redis.set(user.userId.toString(), user.socketId.toString());
-    console.log(`Connect Room ${user.socketId} `)
   }
 
   @UseGuards(JwtAuthGuard)

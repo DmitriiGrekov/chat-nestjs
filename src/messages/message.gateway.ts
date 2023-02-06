@@ -56,7 +56,6 @@ export class MessageGateway implements OnModuleInit, OnGatewayConnection, OnGate
     const redisUser = JSON.parse(await this.redis.get(`user_id-${data?.userId}`));
     if (!redisUser) {
       const newUser = [{ [data.roomId]: { date_closed: dateDisconected.toString() } }];
-      console.log(`Disconnect Message ${client.id} `);
       return await this.redis.set(`user_id-${data?.userId}`, JSON.stringify(newUser));
     }
     redisUser.forEach(user => {
@@ -65,7 +64,6 @@ export class MessageGateway implements OnModuleInit, OnGatewayConnection, OnGate
       user[data.roomId] = dateDisconected;
     });
     await this.redis.set(`user_id-${data?.userId}`, JSON.stringify(redisUser))
-    console.log(`Disconnect Message ${client.id} `);
   }
 
   async sendMessage(data: any, roomId: number) {
@@ -73,7 +71,6 @@ export class MessageGateway implements OnModuleInit, OnGatewayConnection, OnGate
     if (!redisRoom)
       throw new HttpException('Ошибка отправки сообщения', HttpStatus.BAD_GATEWAY);
     const socketIds = redisRoom.map(r => { return r.socketId });
-    console.log(socketIds);
     if (redisRoom)
       this.server.to(socketIds).emit('message', data)
   }

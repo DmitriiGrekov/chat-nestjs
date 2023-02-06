@@ -1,16 +1,10 @@
 import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { User } from '@prisma/client';
-import { UserResponseDto } from './dto/user-response.dto';
-import { QueryDto } from './dto/query.dto';
-
-interface IUserSearch {
-  where: any;
-  select?: any;
-}
+import { userSelect } from './users.controller';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
@@ -18,8 +12,8 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     try {
-      const userExists = await this.prismaService.user.findFirst({ where: { OR: [{ login: createUserDto.login }, { phone: createUserDto.phone }, { email: createUserDto.email }] } })
-      if (userExists) throw new HttpException('Данный логин, телефон или почта уже существует', HttpStatus.BAD_REQUEST);
+      const userExists = await this.findAll({ where: { OR: [{ login: createUserDto.login }, { phone: createUserDto.phone }, { email: createUserDto.email }] } })
+      if (userExists.length > 0) throw new HttpException('Данный логин, телефон или почта уже существует', HttpStatus.BAD_REQUEST);
       const hash = await bcrypt.hash(createUserDto.password, 10);
       return await this.prismaService.user.create({ data: { ...createUserDto, password: hash } });
     } catch (error) {
@@ -27,7 +21,7 @@ export class UsersService {
     }
   }
 
-  async findAll(params?): Promise<User[]> {
+  async findAll(params?) {
     try {
       return await this.prismaService.user.findMany(params);
     } catch (error) {
@@ -35,9 +29,12 @@ export class UsersService {
     }
   }
 
-  async findOne(params: IUserSearch): Promise<User> {
+  async findOne(id: number, otherParams = {}) {
     try {
-      const user = await this.prismaService.user.findFirst(params);
+      const user = await this.prismaService.user.findFirst({
+        where: { OR: [{ id: id }, { ...otherParams }] },
+        ...userSelect
+      });
       if (!user) throw new HttpException("Пользователь не найден", HttpStatus.NOT_FOUND);
       return user;
     } catch (error) {
@@ -47,7 +44,7 @@ export class UsersService {
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     try {
-      const user = await this.prismaService.user.findFirst({ where: { id: id } });
+      const user = await this.findOne(id);
       if (!user) throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
       return await this.prismaService.user.update({ where: { id: id }, data: { ...updateUserDto } })
     } catch (error) {
@@ -57,7 +54,7 @@ export class UsersService {
 
   async remove(id: number): Promise<User> {
     try {
-      const user = await this.prismaService.user.findFirst({ where: { id: id } });
+      const user = await this.findOne(+id);
       if (!user) throw new HttpException('Пользователь не существует', HttpStatus.NOT_FOUND);
       return await this.prismaService.user.delete({ where: { id: id } });
     } catch (error) {

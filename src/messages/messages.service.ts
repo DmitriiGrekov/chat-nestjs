@@ -7,11 +7,10 @@ import {
   Inject,
 } from "@nestjs/common";
 import { Message } from "@prisma/client";
+import { PrismaService } from "src/prisma/prisma.service";
+import { RoomsService } from "src/rooms/rooms.service";
 import { userSelect } from "src/users/users.controller";
-import { PrismaService } from "../../prisma/prisma.service";
-import { RoomsService } from "../../src/rooms/rooms.service";
 import { CreateMessageDto } from "./dto/create-message.dto";
-import { UpdateMessageDto } from "./dto/update-message.dto";
 
 @Injectable()
 export class MessagesService {
@@ -19,14 +18,7 @@ export class MessagesService {
 
   async send(createMessageDto: CreateMessageDto, userId: number): Promise<Message> {
     try {
-      const room = await this.roomService.findOne({
-        where: {
-          AND: [
-            { id: createMessageDto.room_id },
-            { users: { some: { id: userId } } },
-          ],
-        },
-      });
+      const room = await this.roomService.findOne(createMessageDto.room_id, userId);
       if (!room)
         throw new HttpException("Вы не являетесь участником данной комнаты", HttpStatus.BAD_REQUEST);
       return await this.prismaService.message.create({
@@ -40,16 +32,12 @@ export class MessagesService {
 
   async findAll(params = {}, roomId: number, userId: number): Promise<Message[]> {
     try {
-      const room = await this.roomService.findOne({
-        where: { AND: [{ id: roomId }, { users: { some: { id: userId } } }] },
-        include: { users: true },
-      });
+      const room = await this.roomService.findOne(roomId, userId);
       if (!room)
         throw new HttpException("Вы не являетесь участником данной комнаты", HttpStatus.BAD_REQUEST);
 
       return await this.prismaService.message.findMany(params);
     } catch (error) {
-      console.log(error);
       throw new BadRequestException(error);
     }
   }

@@ -1,19 +1,18 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../../src/users/users.service';
 import { AuthLoginDto } from './dto/auth-login.dto';
 import * as bcrypt from 'bcrypt';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
 
-  constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService
-  ) { }
+  constructor(private jwtService: JwtService, private prismaService: PrismaService) { }
 
   async validateUser(login: string, pass: string): Promise<any> {
-    const user = await this.usersService.findOne({ where: { login: login } });
+    const user = await this.prismaService.user.findFirst({ where: { login: login } });
+    if (!user)
+      throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND)
     if (user && await bcrypt.compare(pass, user.password)) {
       return user;
     }

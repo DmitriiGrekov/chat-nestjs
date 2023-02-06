@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import { RoomsService } from '../../src/rooms/rooms.service';
-import { RoomsController } from '../../src/rooms/rooms.controller';
-import { PrismaService } from '../../prisma/prisma.service';
-import { JwtStrategy } from '../../src/auth/strategies/jwt-auth.strategies';
 import { RoomsGateway } from './rooms.gateway';
 import { JwtService } from '@nestjs/jwt';
 import { MessagesService } from 'src/messages/messages.service';
 import { ChatGateway } from './chat.gateway';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RoomsController } from './rooms.controller';
+import { RoomsService } from './rooms.service';
+import { JwtStrategy } from 'src/auth/strategies/jwt-auth.strategies';
 
 @Module({
   controllers: [RoomsController],
